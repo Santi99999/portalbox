@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Recepción de Archivo</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <h1>Recepción de Archivo</h1>
+  
+  <div id="progressSection" style="display: none;">
+    <h2>Recibiendo archivo...</h2>
+    <p id="fileName"></p>
+    <p id="fileSize"></p>
+    <p id="progressText"></p>
+  </div>
+
+  <div id="resultSection" style="display: none;">
+    <h2>Archivo recibido</h2>
+    <p id="fileReceived"></p>
+    <a id="downloadLink" href="#" style="display: none;">Descargar archivo</a>
+  </div>
+
+  <script>
+    $(document).ready(function() {
+      const code = getParameterByName('code');
+      const url = 'https://example.com/receive.php?code=' + code; // Reemplaza con la URL real de tu archivo PHP en 000webhost
+
+      // Realizar solicitud GET para iniciar la recepción del archivo
+      $.get(url, function(response) {
+        if (response.success) {
+          $('#progressSection').show();
+          $('#fileName').text('Nombre del archivo: ' + response.fileName);
+          $('#fileSize').text('Tamaño del archivo: ' + response.fileSize + ' MB');
+          $('#progressText').text('Recibido: ' + response.progress + '/100');
+          pollFileStatus(response.fileName);
+        } else {
+          $('#resultSection').show();
+          $('#fileReceived').text(response.message);
+        }
+      });
+
+      // Función para verificar el estado del archivo en el servidor
+      function pollFileStatus(fileName) {
+        const checkStatus = setInterval(function() {
+          $.get(url + '&action=status', function(response) {
+            if (response.success) {
+              if (response.progress === 100) {
+                clearInterval(checkStatus);
+                $('#progressSection').hide();
+                $('#resultSection').show();
+                $('#downloadLink').attr('href', response.fileURL).show();
+              } else {
+                $('#progressText').text('Recibido: ' + response.progress + '/100');
+              }
+            } else {
+              clearInterval(checkStatus);
+              $('#progressSection').hide();
+              $('#resultSection').show();
+              $('#fileReceived').text(response.message);
+            }
+          });
+        }, 1000);
+      }
+
+      // Función para obtener parámetros de la URL
+      function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, '\\$&');
+        var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+      }
+    });
+  </script>
+</body>
+</html>
